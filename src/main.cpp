@@ -19,7 +19,7 @@ int main(int argc, char* argv[]) {
     else if (option == "-R" && argc == 3) removePkg(argv[2]);
     else if (option == "-Qi" && argc == 3) showInfo(argv[2]);
     else if (option == "-Q" && argc == 3) queryPkg(argv[2]);
-    else if (option == "-Scc") clearCache();
+    else if (option == "clean") clearCache();
     else {
         std::cerr << "Invalid option or missing package name\n";
         return 2;

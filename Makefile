@@ -2,6 +2,10 @@
 CXX      := g++
 CXXFLAGS := -std=c++17 -I include -O2 -Wall -Wextra -Werror -MMD -MP
 
+# Redirect all compiler scratch files into a project-local tmp
+TMPDIR := $(CURDIR)/build/tmp
+export TMPDIR
+
 # Directories and targets
 SRCDIR   := src
 BUILDDIR := build
@@ -13,7 +17,7 @@ OBJECTS  := $(patsubst $(SRCDIR)/%.cpp,$(BUILDDIR)/%.o,$(SOURCES))
 DEPS     := $(OBJECTS:.o=.d)
 
 # Phony targets
-.PHONY: all clean run
+.PHONY: all clean run prepare-tmp
 
 # Quiet mode toggle: set V=1 to see all commands
 QUIET ?= @
@@ -28,13 +32,14 @@ all: $(TARGET)
 $(TARGET): $(OBJECTS)
 	$(QUIET)$(CXX) $(CXXFLAGS) $^ -o $@
 
-# Compile step (generates .o and .d files)
-$(BUILDDIR)/%.o: $(SRCDIR)/%.cpp | $(BUILDDIR)
-	$(QUIET)$(CXX) $(CXXFLAGS) -c $< -o $@
+# Create tmp + build directories before compiling
+prepare-tmp:
+	@mkdir -p $(TMPDIR) $(BUILDDIR)
 
-# Ensure build directory exists
-$(BUILDDIR):
-	@mkdir -p $(BUILDDIR)
+# Compile step (generates .o and .d files)
+# now depends on prepare-tmp so TMPDIR exists
+$(BUILDDIR)/%.o: $(SRCDIR)/%.cpp | prepare-tmp
+	$(QUIET)$(CXX) $(CXXFLAGS) -c $< -o $@
 
 # Include dependency files
 -include $(DEPS)

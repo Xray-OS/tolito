@@ -34,41 +34,60 @@ static int runCmd(const std::string& cmd, bool quiet = false) {
 static bool isUrl(const std::string& s) {
     return s.rfind("http://", 0) == 0
     || s.rfind("https://", 0) == 0
-    || s.rfind("git@", 0) == 0;
+    || s.rfind("git@",    0) == 0;
 }
 
-// Clone & build from a URL into tmpdir
+// Determine a writable work directory under $HOME (~/tolito)
+static fs::path getWorkDir() {
+    const char* home = std::getenv("HOME");
+    if (!home) {
+        std::cerr << RED << "[!] $HOME not set\n" << RESET;
+        std::exit(1);
+    }
+    fs::path dir = fs::path(home) / "tolito";
+    std::error_code ec;
+    fs::create_directories(dir, ec);
+    if (ec) {
+        std::cerr << RED
+        << "[!] Cannot create workdir " << dir
+        << ": " << ec.message() << RESET << "\n";
+        std::exit(1);
+    }
+    return dir;
+}
+
+// Clone & build from a URL into the given directory
 static void cloneAndBuild(const std::string& url,
-                          const std::string& tmpdir,
+                          const std::string& targetDir,
                           const char* successMsg)
 {
-    runCmd("rm -rf " + tmpdir, true);
-    runCmd("mkdir -p " + tmpdir, true);
+    runCmd("rm -rf " + targetDir + "/*", true);
+    runCmd("mkdir -p " + targetDir,    true);
 
     std::cout << GREEN << "[*] Cloning " << url << RESET << "\n";
-    if (runCmd("git clone " + url + " " + tmpdir) != 0) {
+    if (runCmd("git clone " + url + " " + targetDir) != 0) {
         std::cerr << RED << "[!] git clone failed: " << url << RESET << "\n";
         return;
     }
-    fs::current_path(tmpdir);
-    // if (runCmd("makepkg -si --noconfirm") == 0)
+
+    fs::current_path(targetDir);
     if (runCmd("makepkg -si") == 0) {
         std::cout << GREEN << successMsg << RESET << "\n";
     } else {
-        std::cerr << RED << "[!] makepkg failed in " << tmpdir << RESET << "\n";
+        std::cerr << RED << "[!] makepkg failed in "
+        << targetDir << RESET << "\n";
     }
 }
 
 // Ensure ~/.config/tolito/tolito.conf exists and read the ask flag
 static bool askBeforeAUR() {
-    fs::path dir = fs::path(std::getenv("HOME")) / ".config" / "tolito";
-    fs::path conf = dir / "tolito.conf";
+    fs::path cfgdir = fs::path(std::getenv("HOME")) / ".config" / "tolito";
+    fs::path conf   = cfgdir / "tolito.conf";
 
-    if (!fs::exists(dir)) {
-        fs::create_directories(dir);
-    }
+    if (!fs::exists(cfgdir))
+        fs::create_directories(cfgdir);
+
     if (!fs::exists(conf)) {
-        // write default
         std::ofstream out(conf);
         out << "# tolito configuration\n"
         "ask_before_fallback_into_aur = 1\n";
@@ -78,12 +97,11 @@ static bool askBeforeAUR() {
     std::ifstream in(conf);
     std::string line;
     while (std::getline(in, line)) {
-        if (auto p = line.find('#'); p != std::string::npos) {
+        if (auto p = line.find('#'); p != std::string::npos)
             line.erase(p);
-        }
         if (auto eq = line.find('='); eq != std::string::npos) {
-            std::string key = line.substr(0, eq);
-            std::string val = line.substr(eq + 1);
+            std::string key = line.substr(0, eq),
+            val = line.substr(eq + 1);
             auto trim = [](std::string &s) {
                 s.erase(s.begin(),
                         std::find_if(s.begin(), s.end(),
@@ -104,7 +122,11 @@ static bool askBeforeAUR() {
 }
 
 void installPkg(const std::string& spec) {
-    // 1) Pre-flight
+    // Ensure and grab the home-directory work path
+    static const fs::path WORK = getWorkDir();
+    const std::string workDir = WORK.string();
+
+    // 1) Pre-flight checks
     if (runCmd("which git > /dev/null", true) != 0 ||
         runCmd("which makepkg > /dev/null", true) != 0)
     {
@@ -112,44 +134,53 @@ void installPkg(const std::string& spec) {
         return;
     }
 
-    // 2) URL override
+    // 2) URL override — clone directly into ~/tolito
     if (isUrl(spec)) {
-        cloneAndBuild(spec,
-                      "/tmp/tolito_url",
-                      "[✓] Installed from URL");
+
+        runCmd(
+            "find " + workDir
+            + " -maxdepth 1 \\( -name \".git\" -o -name \".gitignore\" "
+            + "-o -name \"README.md\" \\) -exec rm -rf {} +",
+            true
+        );
+        cloneAndBuild(
+            spec,
+            workDir,
+            "[✓] Installed from URL"
+        );
         return;
     }
 
-    // 3) Try sparse-checkout from monorepo
-    {
-        const std::string tmp = "/tmp/tolito_monorepo";
-        runCmd("rm -rf " + tmp, true);
-        runCmd("git clone --depth 1 --filter=blob:none --sparse "
-        + std::string(MONOREPO) + " " + tmp, true);
-        runCmd("git -C " + tmp + " sparse-checkout set " + spec, true);
+    // 3) Sparse-checkout from monorepo — directly into ~/tolito
+    runCmd("rm -rf " + workDir + "/*", true);
+    runCmd(
+        "git clone --depth 1 --filter=blob:none --sparse "
+        + std::string(MONOREPO)
+        + " "
+        + workDir,
+        true
+    );
+    runCmd("git -C " + workDir + " sparse-checkout set " + spec, true);
 
-        fs::path pkgdir = fs::path(tmp) / spec;
-        if (fs::exists(pkgdir / "PKGBUILD")) {
-            fs::current_path(pkgdir);
-            // if (runCmd("makepkg -si --noconfirm") == 0)
-            if (runCmd("makepkg -si") == 0) {
-                std::cout << GREEN
-                << "[✓] Installed " << spec
-                << " from curated GitLab repo\n"
-                << RESET;
-            } else {
-                std::cerr << RED
-                << "[!] build failed for " << spec
-                << " from monorepo\n"
-                << RESET;
-            }
-            return;
+    fs::path pkgdir = WORK / spec;
+    if (fs::exists(pkgdir / "PKGBUILD")) {
+        fs::current_path(pkgdir);
+        if (runCmd("makepkg -si") == 0) {
+            std::cout << GREEN
+            << "[✓] Installed " << spec
+            << " from curated GitLab repo\n"
+            << RESET;
+        } else {
+            std::cerr << RED
+            << "[!] build failed for " << spec
+            << " from monorepo\n"
+            << RESET;
         }
+        return;
     }
 
     // 4) Fallback to AUR, optional prompt
-    bool ask = askBeforeAUR();
-    if (ask) {
+    if (askBeforeAUR()) {
         std::cout << YELLOW
         << "Package '" << spec
         << "' not found in curated repo. Install from AUR? [Y/n] "
@@ -164,9 +195,11 @@ void installPkg(const std::string& spec) {
         }
     }
 
-    // 5) AUR clone & build
+    // 5) AUR clone & build — directly into ~/tolito
     std::string aurUrl = std::string(AUR_NS) + spec + ".git";
-    cloneAndBuild(aurUrl,
-                  "/tmp/tolito_aur_" + spec,
-                  "[✓] Installed from AUR");
+    cloneAndBuild(
+        aurUrl,
+        workDir,
+        "[✓] Installed from AUR"
+    );
 }
