@@ -41,15 +41,13 @@ Tolito is a modular, user-centric AUR helper mainly for Xray_OS and also for gen
 
    ## seeing versions of packages:
    tolito -Q mullvad-browser-bin
-   tp;otp -Qi mullvad-browser-bin  (this is for a more detailed version of course)
+   tolito -Qi mullvad-browser-bin  (this is for a more detailed version of course)
 
    ## removing packages and clean cache:
    tolito -R mullvad-browser-bin
    tolito clean
 
    - the cache is clean from /home/user/tolito
-
-   ## Installation
 
 Other interesting features 
    ```
