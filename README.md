@@ -27,7 +27,7 @@ Tolito is a modular, user-centric AUR helper mainly for Xray_OS and also for gen
 
 1. Clone the Tolito repository:
    ```bash
-   git clone https://gitlab.com/your-username/tolito.git
+   git clone https://github.com/xray-os/tolito.git
    cd tolito
    sudo cp -r tolito /usr/bin
 
