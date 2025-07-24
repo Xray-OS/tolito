@@ -31,7 +31,7 @@ Tolito is a modular, user-centric AUR helper mainly for Xray_OS and also for gen
    cd tolito
    sudo cp -r tolito /usr/bin
 
-   NOTE: if you prefer to download the release manually, then after you extract the file do the same as above:
+   NOTE: if you prefer to download the release manually, then after you extracted the file do the same as above:
    go the folder you extracted, open the terminal there and:
    sudo cp -r tolito /usr/bin
 
