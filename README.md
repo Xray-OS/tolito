@@ -8,7 +8,9 @@ Tolito AUR Helper is still in **alpha**. Be patient—bugs and missing features 
 
 ## 🚀 Overview
 
-Tolito is an effective and useful AUR Helper that primarily pulls PKGBUILDS from Xray_OS official AUR repos, so yeah, Xray_OS has its own kind of AUR thing, but is not like the public AUR, it is private and the PKGBUILDS are curated to be installed on the fly without errors. Tolito basically uses the same commands that a typical AUR helper like Yay often uses, eg.: 'tolito -S palemoon-bin', when Tolito can't find any PKGBUILD that the user is looking for the curated XRAY-REPOS, it falls back into looking for it in the AUR, but before that Tolito ask the user first if they want to fallback and get that package from the AUR or not.
+Tolito is an effective and useful AUR Helper that primarily pulls PKGBUILDS from Xray_OS official AUR repos, so yeah, Xray_OS has its own kind of AUR thing, but is not like the public AUR, it is private and the PKGBUILDS are curated to be installed on the fly without errors. 
+
+Tolito basically uses the same commands that a typical AUR helper like Yay often uses, eg.: 'tolito -S palemoon-bin', when Tolito can't find any PKGBUILD that the user is looking for the curated XRAY-REPOS, it falls back into the AUR, but before that Tolito ask the user first if they want to get that package from the AUR or not.
 
 Tolito is fast, lightweight AUR helper written in pure C++ (C++17). It was built for [Xray_OS](https://example.com) and streamlines package installation by:
 
