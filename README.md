@@ -40,7 +40,7 @@ This “private-first” approach ensures on-the-fly installs with minimal error
 | Clean cache   | `tolito clean`            | Clears Tolito’s build/cache directory    |
 | Query version | `tolito -Q <pkg>`         | Show installed package version           |
 | Query info    | `tolito -Qi <pkg>`        | Show detailed package info               |
-| Update        | `tolito -Su`              | Not supported yet (WIP)                  |
+| Update        | `tolito -Syu`              | Not supported yet (WIP)                  |
 
 ---
 
