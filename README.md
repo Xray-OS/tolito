@@ -63,5 +63,4 @@ make
 
 ## 📥 How to run it?
 
-```bash
-'./Tolito' or 'sudo ./tolito'
+"./Tolito" or "sudo ./tolito"
