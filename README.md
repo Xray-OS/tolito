@@ -60,6 +60,8 @@ cd tolito
 cmake ..
 make
 
+🌐 Contact For any questions or contributions, feel free to open an issue or pull request on the GitHub repository.
+
 
 ## 📥 How to run it?
 
