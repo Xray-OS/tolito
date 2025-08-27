@@ -23,6 +23,6 @@ Tolito is an effective and useful AUR Helper that primarily pulls PKGBUILDS from
 - 🛠️ Tolito is written in C++ which is my favorite language
 - 🖥️ Tolito has the same Syntax from the conventional pacman manager, the only difference is when cleaning the cache 'tolito clean'
 
+## Sourceforge
 - **Project Page**: [SourceForge](https://sourceforge.net/projects/tolito/)
-- **Status**: Xray_OS is back and being updated
-- **Next Release**: Will include optional Xray_OS branding via Tolitica
+- **Status**: alpha-W.I.P
