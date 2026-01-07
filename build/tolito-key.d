@@ -1,2 +1,2 @@
-build/tolito-key.o: src/tolito-key.cpp include/tolito-key.hpp
-include/tolito-key.hpp:
+build/tolito-key.o: src/tolito-key.cpp include/tolito-key.h
+include/tolito-key.h:

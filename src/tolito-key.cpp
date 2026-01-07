@@ -1,44 +1,52 @@
-// src/tolito-key.cpp
+#include "tolito-key.h"
 
-#include "tolito-key.hpp"
-
+#include <cctype>
 #include <iostream>
 #include <cstdlib>
 #include <string>
 #include <sys/wait.h>
+#include <algorithm>
 
 static constexpr char KEYSERVER[] = "keyserver.ubuntu.com";
 
-/// Run a shell command, returning its exit code (or –1 if system() fails).
 static int runCmd(const std::string& cmd) {
     std::cout << "[~] " << cmd << "\n";
     int rc = std::system(cmd.c_str());
     return (rc == -1 ? -1 : WEXITSTATUS(rc));
 }
 
-bool importPgpKey(const std::string& keyId) {
-    std::cout << "[*] Importing PGP key " << keyId << " into GPG…\n";
+bool isValidKeyId(const std::string& keyId) {
+    // GPG Key IDs are hex strings. They should only contain 0-9 and A-F.
+    if (keyId.empty() || keyId.length() > 40) return false;
 
-    // 1) Import into the user GPG keyring
-    std::string gpgCmd = "gpg --batch --keyserver "
-                       + std::string(KEYSERVER)
-                       + " --recv-keys " + keyId;
-    if (runCmd(gpgCmd) != 0) {
-        std::cerr << "[!] gpg failed to fetch key " << keyId << "\n";
+    return std::all_of(keyId.begin(), keyId.end(), [](unsigned char c) {
+        return std::isxdigit(c);
+    });
+}
+
+bool fetchAndTrustgKey(const std::string& keyId) {
+    if (!isValidKeyId(keyId)) {
+        std::cerr << "[!] Invalid Key ID format: " << keyId << "\n";
         return false;
     }
 
-    // 2) Also register & locally sign in pacman-key
-    std::cout << "[*] Registering key with pacman-key…\n";
-    std::string pkRecv = "sudo pacman-key --keyserver "
-                       + std::string(KEYSERVER)
-                       + " --recv-keys " + keyId;
-    std::string pkSign = "sudo pacman-key --lsign-key " + keyId;
-    if (runCmd(pkRecv) != 0 || runCmd(pkSign) != 0) {
-        std::cerr << "[!] pacman-key failed for " << keyId << "\n";
-        // continue anyway, GPG import is primary for makepkg
+    std::string fetchCmd = "gpg --batch --keyserver " + std::string(KEYSERVER) +
+                      " --recv-keys " + keyId + " 2>&1";
+
+    if (runCmd(fetchCmd)!= 0) {
+        std::cerr << "[!] GPG failed to fetch key: " << keyId << "\n";
+        return false;
     }
 
-    std::cout << "[✓] Imported & signed PGP key " << keyId << "\n";
+    // If success also sign in pacman-key
+    std::cout << "[*] Signing key with pacman-key...\n";
+    std::string signCmd = "sudo pacman-key --lsign-key " + keyId;
+
+    if (runCmd(signCmd) != 0) {
+        std::cerr << "[!] pacman-key failed for " << keyId << "\n";
+        return false;
+    }
+
+    std::cout << "[✓] Successfully imported & signed PGP key " << keyId << "\n";
     return true;
 }

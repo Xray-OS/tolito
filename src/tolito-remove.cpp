@@ -1,28 +1,38 @@
-// src/tolito-remove.cpp
-
-#include "tolito-remove.hpp"
+#include "tolito-remove.h"
+#include "tolito-install.h"
 
 #include <iostream>
 #include <cstdlib>
 #include <string>
 #include <sys/wait.h>
 
-void removePkg(const std::string& pkg) {
-    std::string cmd = "sudo pacman -Rns " + pkg + " --noconfirm";
+// ANSI colors
+static constexpr char RED[]    = "\033[31m";
+static constexpr char GREEN[]  = "\033[32m";
+static constexpr char YELLOW[] = "\033[33m";
+static constexpr char RESET[]  = "\033[0m";
 
-    std::cout << "[*] Removing " << pkg << "...\n";
+// Run a shell command; return exit code or -1
+static int runCmd(const std::string& cmd, bool quiet = false) {
+    if (!quiet) std::cout << YELLOW << "[~] " << cmd << RESET << "\n";
+    int r = std::system(cmd.c_str());
+    return (r == -1 ? -1 : WEXITSTATUS(r));
+}
 
-    int raw = std::system(cmd.c_str());
-    if (raw == -1) {
-        std::cerr << "[!] system() call failed\n";
-        return;
-    }
+bool removePkg(const std::string& pkg) {
+    if (pkg.empty()) return false;
 
-    int exitCode = WEXITSTATUS(raw);
-    if (exitCode != 0) {
-        std::cerr << "[!] pacman exited with code " << exitCode
-                  << " while removing \"" << pkg << "\"\n";
+    int exitCode = runCmd("sudo pacman -Rns " + pkg);
+
+    if (exitCode == -1) {
+        std::cerr << RED << "[!] system() call failed" << RESET << "\n";
+        return false;
+    } else if (exitCode != 0) {
+        std::cerr << RED << "[!] pacman failed (Code: " << exitCode << ")" << RESET << "\n";
+        return false;
     } else {
-        std::cout << "[✓] Package \"" << pkg << "\" removed successfully\n";
+        std::cout << GREEN << "[✓] Package \"" << pkg << "\" removed successfully" << RESET << "\n";
+        removePackageSource(pkg);
+        return true;
     }
 }

@@ -1,60 +1,44 @@
-// src/tolito-cache.cpp
+#include "tolito-cache.h"
 
-#include "tolito-cache.hpp"
-
+#include <cerrno>
 #include <iostream>
 #include <cstdlib>
 #include <sys/wait.h>
 #include <filesystem>
+#include <system_error>
 
 namespace fs = std::filesystem;
 
 void clearCache() {
-	// clear pacman's cache
-	std::cout << "[*] Clearing pacman cache...\n";
-	const char* cmd = "yes | sudo pacman -Scc";
-	int raw = std::system(cmd);
-	if (raw == -1) {
-		std::cerr << "[!] system() call failed\n";
-		return;
-	}
-	int exitCode = WEXITSTATUS(raw);
-	if (exitCode != 0) {
-		std::cerr << "[!] Failed to clear pacman cache (exit code "
-		<< exitCode << ")\n";
-	} else {
-		std::cout << "[✓] Pacman cache cleared\n";
-	}
-
-	// clear tolito's working directory
-	std::cout << "[*] Clearing ~/tolito working directory...\n";
-	const char* home = std::getenv("HOME");
-	if (!home) {
-		std::cerr << "[!] $HOME not set, cannot clear tolito cache\n";
-		return;
-	}
-
-	fs::path cacheDir = fs::path(home) / "tolito";
-	std::error_code ec;
-
-	// remove everything under ~/tolito
-	    // for (auto &entry : fs::directory_iterator(cacheDir, ec)) {
-	    //     fs::remove_all(entry.path(), ec);
-	    // }
-
-    fs::remove_all(cacheDir, ec);
-    if (ec) {
-        std::cerr << "[!] Failed to remove " << cacheDir
-        << ": " << ec.message() << "\n";
+    // clear tolito's working directory
+    std::cout << "[*] Clearing ~/tolito working directory...\n";
+    const char* home = std::getenv("HOME");
+    if (!home) {
+        std::cerr << "[!] $HOME not set, cannot clear tolito cache\n";
         return;
     }
 
-	// recreate the directory
-	fs::create_directories(cacheDir, ec);
-	if (ec) {
-		std::cerr << "[!] Cannot recreate " << cacheDir
-		<< ": " << ec.message() << "\n";
-	} else {
-		std::cout << "[✓] Tolito working directory cleared\n";
-	}
+    fs::path cacheDir = fs::path(home) / "tolito";
+    std::error_code ec;
+    if (!fs::exists(cacheDir)) return;
+
+    auto it = fs::directory_iterator(cacheDir, ec);
+    if (ec) {
+        std::cerr << "[!] Could not open directory: " << ec.message() << "\n";
+        return;
+    }
+
+    for (const auto& entry : it) {
+        std::error_code deleteEc;
+
+        fs::remove_all(entry.path(), deleteEc);
+        if(deleteEc.value() == EBUSY || deleteEc.value() == 32) {
+            std::cerr << "[!] Skipping " << entry.path().filename()
+            << " (currently in use)\n";
+        }
+        else if(deleteEc) {
+            std::cerr << "[!] Failed to remove " << entry.path()
+            << ": " << deleteEc.message() << "\n";
+        }
+    }
 }

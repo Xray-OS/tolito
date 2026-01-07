@@ -1,6 +1,4 @@
-// src/tolito-query.cpp
-
-#include "tolito-query.hpp"
+#include "tolito-query.h"
 
 #include <iostream>
 #include <cstdlib>
@@ -10,6 +8,7 @@
 void queryPkg(const std::string& pkg) {
     std::string cmd = "pacman -Q " + pkg + " 2>/dev/null";
     int raw = std::system(cmd.c_str());
+
     if (raw == -1) {
         std::cerr << "[!] system() call failed\n";
         return;
