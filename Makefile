@@ -30,7 +30,7 @@ all: $(TARGET)
 
 # Link step
 $(TARGET): $(OBJECTS)
-	$(QUIET)$(CXX) $(CXXFLAGS) $^ -o $@
+	$(QUIET)$(CXX) $(CXXFLAGS) $^ -o $@ -lcurl
 
 # Create tmp + build directories before compiling
 prepare-tmp:

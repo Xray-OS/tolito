@@ -1,69 +1,215 @@
-# 🐾 Tolito AUR Helper
+# 🐾 Tolito Package Manager
 
-## 🚧 Note
+## 🚧 Status
 
-Tolito AUR Helper is still in **alpha**. Be patient—bugs and missing features are expected.
+Tolito is in **active development**. Core features are functional but expect ongoing improvements and refinements.
 
 ---
 
 ## 🚀 Overview
 
-Tolito is an effective and useful AUR Helper that primarily pulls PKGBUILDS from Xray_OS official AUR repos, so yeah, Xray_OS has its own kind of AUR thing, but is not like the public AUR, it is private and the PKGBUILDS are curated to be installed on the fly without errors. 
+Tolito is a fast, lightweight package manager for Arch Linux written in pure C++ (C++17). It provides intelligent multi-source package management with priority-based updates, combining curated repositories, AUR, and Chaotic-AUR into a unified system.
 
-Tolito basically uses the same commands that a typical AUR helper like Yay often uses, eg.: 'tolito -S palemoon-bin', when Tolito can't find any PKGBUILD that the user is looking for the curated XRAY-REPOS, it falls back into the AUR, but before that Tolito ask the user first if they want to get that package from the AUR or not.
+### Key Philosophy
 
-Tolito is fast, lightweight AUR helper written in pure C++ (C++17). It was built for [Xray_OS](https://example.com) and streamlines package installation by:
-
-- Pulling curated PKGBUILDs from Xray_OS’s **private** GitLab repositories  
-- Using the **same syntax** as popular helpers like `yay` (e.g. `tolito -S palemoon-bin`)  
-- Falling back to the **public AUR** only if the package isn’t found in Xray repos—and only after prompting you first  
-
-This “private-first” approach ensures on-the-fly installs with minimal errors, while still giving you the flexibility of the AUR when needed.
+- **Curated-First**: Prioritizes Viper's curated PKGBUILDs (viper-pkgbuilds) for stability
+- **AUR Integration**: Seamless fallback to AUR when packages aren't in curated repos
+- **Repository Support**: Full pacman-compatible repository system (Chaotic-AUR, etc.)
+- **Configuration-Driven**: Everything controlled via `tolito.conf` with no hardcoded values
 
 ---
 
-## ✨ Unique Features
+## ✨ Features
 
-- 📥 Primary source: **Xray_OS official GitLab repos**  
-- 🔄 Optional fallback: **public AUR** (with user confirmation)  
-- 🚀 Written in **pure C++** for speed and a small footprint  
-- 🔧 Pacman- and `yay`-style commands for instant familiarity  
+### Multi-Source Package Management
+- 📦 **Curated Repositories**: viper-pkgbuilds (GitHub)
+- 🔧 **AUR Integration**: Full Arch User Repository support
+- 🗄️ **Repository System**: Pacman-compatible repos (Chaotic-AUR)
+- 🔗 **Direct URLs**: Install from any git repository URL
+
+### Intelligent Update System
+- 🔄 **Priority-Based Updates**: main → alternative → fallback logic
+- 📊 **Cross-Source Comparison**: Compares versions across all sources
+- 🎯 **Smart Source Switching**: Automatic or user-confirmed source changes
+- ⚡ **Version Comparison**: Uses `vercmp` for accurate version checking
+
+### Advanced Features
+- 🔐 **PGP Key Handling**: Automatic key fetching and signing
+- 💾 **Build Caching**: Skips rebuilding already-built packages
+- 📝 **Source Tracking**: JSON-based tracking of package origins
+- 🎨 **Progress Bars**: Pacman-style download progress with ILoveCandy support
+- 🌈 **Color Support**: Configurable ANSI color output
+- 🪞 **Mirror Selection**: Automatic speed testing and mirror ranking
 
 ---
 
-## 🛠️ Commands Reference
+## 🛠️ Commands
 
-| Action        | Command                   | Notes                                    |
-|---------------|---------------------------|------------------------------------------|
-| Install       | `tolito -S <pkg>`         | Installs a package                       |
-| Remove        | `tolito -R <pkg>`         | Removes a package                        |
-| Clean cache   | `tolito clean`            | Clears Tolito’s build/cache directory    |
-| Query version | `tolito -Q <pkg>`         | Show installed package version           |
-| Query info    | `tolito -Qi <pkg>`        | Show detailed package info               |
-| Update        | `tolito -Syu`              | Not supported yet (WIP)                  |
+| Command | Description |
+|---------|-------------|
+| `tolito -S <pkg>` | Install package(s) from any source |
+| `tolito -Sr <pkg>` | Install from repositories only |
+| `tolito -Syu` | Update all installed packages |
+| `tolito -Su <pkg>` | Update specific package |
+| `tolito -R <pkg>` | Remove package(s) |
+| `tolito -Q <pkg>` | Show package name and version |
+| `tolito -Qi <pkg>` | Show detailed package information |
+| `tolito clean` | Clear build cache |
+
+---
+
+## 📋 Installation Priority
+
+When installing with `-S`, Tolito follows this sequence:
+
+1. **Curated Repos** (viper-pkgbuilds) - Checked first
+2. **AUR** - If not in curated (with user confirmation)
+3. **Repositories** (Chaotic-AUR) - Last resort fallback
+
+With `-Sr`, only repositories are checked.
+
+---
+
+## ⚙️ Configuration
+
+Configuration file: `~/.config/tolito/tolito.conf`
+
+### Example Configuration
+
+```ini
+# Global settings
+ask_before_fallback_into_aur = 1
+warn_about_aur_only = 1
+askBeforeSwitchSources = false
+
+[Misc]
+ILoveCandy = true
+Color = true
+DisableDownloadTimeout = false
+
+[UpdateRules]
+_CURATED_:
+getFromAUR=true
+getFromChaotic=true
+main=CURATED
+alternative=AUR
+fallback=CHAOTIC
+
+_AUR_:
+getFromCurated=true
+getFromChaotic=true
+main=AUR
+alternative=CHAOTIC
+fallback=CURATED
+
+[repositories]
+chaotic-aur:
+Include=/home/$USER/.config/tolito/tolito.d/chaotic-mirrorlist
+SigLevel=Optional
+```
+
+### Configuration Options
+
+**Global Settings:**
+- `ask_before_fallback_into_aur`: Prompt before using AUR
+- `warn_about_aur_only`: Show warnings for AUR packages
+- `askBeforeSwitchSources`: Confirm before switching sources
+
+**Misc Options:**
+- `ILoveCandy`: Enable Pac-Man style progress bar
+- `Color`: Enable colored output
+- `DisableDownloadTimeout`: Remove 120s download timeout
+
+**UpdateRules:**
+- `main`: Primary update source
+- `alternative`: Secondary source
+- `fallback`: Last resort source
+- `getFrom*`: Enable checking specific sources
+
+**Repositories:**
+- `Include`: Path to mirrorlist file
+- `SigLevel`: Signature verification level
 
 ---
 
 ## 💻 System Requirements
 
-- **OS:** Xray_OS (recommended) or any Arch-based distro  
-- **Compiler:** GCC or Clang with C++17 support  
-- **Dependencies:** `git`, `curl`, `make`, `pkgconf`
+**OS:** Arch Linux or Arch-based distributions
+
+**Build Dependencies:**
+- GCC/Clang with C++17 support
+- make
+- libcurl development files
+
+**Runtime Dependencies:**
+- git
+- makepkg (pacman)
+- curl
+- tar
+- pacman
 
 ---
 
-## 📥 How to build the binary
+## 📥 Building from Source
 
 ```bash
-git clone https://github.com/Xray-OS/Tolito.git
+git clone https://github.com/Xray-OS/tolito.git
 cd tolito
-cmake ..
 make
 
-## 📥 How to run it?
-
-"./Tolito" or "sudo ./tolito"
-
+# Run tolito
+./tolito -S <package>
 ```
 
-🌐 Contact For any questions or contributions, feel free to open an issue or pull request on the GitHub repository.
+---
+
+## 📂 File Structure
+
+```
+~/.config/tolito/
+├── tolito.conf              # Main configuration
+├── tolito.d/
+│   └── chaotic-mirrorlist   # Repository mirrors
+└── package_sources.json     # Source tracking
+
+~/.cache/tolito/
+└── repos/                   # Repository database cache
+
+~/tolito/                    # Working directory
+├── viper-pkgbuilds/         # Curated repository
+└── <package-dirs>/          # AUR package builds
+```
+
+---
+
+## 🎨 Progress Bar Features
+
+- **Pacman-compatible**: Matches pacman's progress bar style
+- **ILoveCandy Mode**: Pac-Man animation eating dots
+- **Color Support**: Cyan package names, white values, colored progress
+- **Smart Throttling**: Updates every 200ms or 1% progress change
+- **Terminal Aware**: Adapts to terminal width
+
+---
+
+## 🔄 Update System
+
+Tolito's update system uses priority-based rules:
+
+1. Checks installed package source
+2. Applies UpdateRules for that source type
+3. Checks main → alternative → fallback sources
+4. Compares versions using `vercmp`
+5. Offers update if newer version found
+
+---
+
+## 🌐 Contact
+
+For questions, issues, or contributions:
+- GitHub: [Xray-OS/tolito](https://github.com/Xray-OS/tolito)
+- Open an issue or pull request
+
+---
+
+**Built with ❤️ for Viper(Xray_OS) and the Arch Linux community**
